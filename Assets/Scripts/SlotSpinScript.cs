@@ -11,13 +11,13 @@ using UnityEngine.UI;
 public class SlotSpinScript : MonoBehaviour
 {
     [Header("Variables")]
-    [SerializeField] private Text reel1;
-    [SerializeField] private Text reel2;
-    [SerializeField] private Text reel3;
+    [SerializeField] private GameObject reel1;
+    [SerializeField] private GameObject reel2;
+    [SerializeField] private GameObject reel3;
     [SerializeField] private Text betAmountText;
     [SerializeField] private Text currentMoneyText;
-    [SerializeField] private Text peekPrediction1;
-    [SerializeField] private Text peekPrediction2;
+    [SerializeField] private Image peekPrediction1;
+    [SerializeField] private Image peekPrediction2;
     [SerializeField] private int symbolCount = 5;
     [SerializeField] private GameObject lockCanvas;
     [SerializeField] private GameObject reRollCanvas;
@@ -32,6 +32,7 @@ public class SlotSpinScript : MonoBehaviour
 
     [Header("Item Settings")]
     [SerializeField] private int itemsPermittedPerRound = 2;
+    [SerializeField] private Sprite[] items;
 
     private int betAmount;
     private int betAmountPosition=0;
@@ -47,6 +48,8 @@ public class SlotSpinScript : MonoBehaviour
     {
         betAmount = betAmountChoices[betAmountPosition];
         currentMoneyText.text = currentMoney.ToString();
+        AlphaChange(peekPrediction1, 0f);
+        AlphaChange(peekPrediction2, 0f);
         SetReels();
     }
     private void SetReels()
@@ -67,20 +70,29 @@ public class SlotSpinScript : MonoBehaviour
         //animation for reel1
         //animation for reel2
         //animation for reel3
-        reel1.text = "Sp";
-        reel2.text = "Sp";
-        reel3.text = "Sp";
+        reel1.GetComponent<ReelScript>().StartSpin();
+        reel2.GetComponent<ReelScript>().StartSpin();
+        reel3.GetComponent<ReelScript>().StartSpin();
         yield return new WaitForSeconds (reelSpinTime);
         //stop animation for reel1
-        reel1.text = r1.ToString();
+        reel1.GetComponent<ReelScript>().StopSpin(r1-1);
         yield return new WaitForSeconds (reelSpinTime);
         //stop animation for reel2
-        reel2.text = r2.ToString();
+        reel2.GetComponent<ReelScript>().StopSpin(r2-1);
         yield return new WaitForSeconds (reelSpinTime);
         //stop animation for reel3
-        reel3.text = r3.ToString();
+        reel3.GetComponent<ReelScript>().StopSpin(r3-1);
+
+        Debug.Log($"{r1},{r2},{r3}");
         CheckResult();
         SetReels();
+
+        peekPrediction1.sprite = null;
+        AlphaChange(peekPrediction1, 0f);
+
+        peekPrediction2.sprite = null;
+        AlphaChange(peekPrediction2, 0f);
+
         isSpinning = false;
     }
     private void CheckResult()
@@ -163,22 +175,24 @@ public class SlotSpinScript : MonoBehaviour
     }
     private void ReceiveItem(int reel)
     {
-        itemButtons[reel-1].SetActive(true);
+        itemButtons[reel-1].GetComponent<Button>().interactable = true;
     }
     public void UsePeek()
     {   
         if(!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
             itemsUsedThisRound++;
-            peekPrediction1.text = r1.ToString();
-            peekPrediction2.text = r2.ToString();
-            itemButtons[0].SetActive(false);
+            peekPrediction1.sprite = items[r1-1];
+            AlphaChange(peekPrediction1, 1f);
+            peekPrediction2.sprite = items[r2-1];
+            AlphaChange(peekPrediction2, 1f);
+            itemButtons[0].GetComponent<Button>().interactable = false;
         }
     }
     public void UseLock()
     {   if(!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
             itemsUsedThisRound++;
             lockCanvas.SetActive(true);
-            itemButtons[1].SetActive(false);
+            itemButtons[1].GetComponent<Button>().interactable = false;
         }
     }
     public void LockReelSet(int reel3)
@@ -190,7 +204,7 @@ public class SlotSpinScript : MonoBehaviour
     {   if(!isSpinning&&!isDoubleMultiplier&&itemsUsedThisRound<itemsPermittedPerRound){
             itemsUsedThisRound++;
             isDoubleMultiplier = true;
-            itemButtons[2].SetActive(false);
+            itemButtons[2].GetComponent<Button>().interactable = false;
         }
     }
     public void UseReroll()
@@ -198,7 +212,7 @@ public class SlotSpinScript : MonoBehaviour
         if(!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
             itemsUsedThisRound++;
             reRollCanvas.SetActive(true);
-            itemButtons[3].SetActive(false);
+            itemButtons[3].GetComponent<Button>().interactable = false;
         }
     }
     public void RerollReelSet(int reel)
@@ -211,7 +225,7 @@ public class SlotSpinScript : MonoBehaviour
         if (!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
             itemsUsedThisRound++;
             insuranceUsed = true;
-            itemButtons[4].SetActive(false);
+            itemButtons[4].GetComponent<Button>().interactable = false;
         }
     }
     IEnumerator OneReelSpin(int reel)
@@ -220,29 +234,35 @@ public class SlotSpinScript : MonoBehaviour
         if (reel == 1)
         {
             r1 = Random.Range(1,symbolCount+1);
-            reel1.text = "Sp";
+            reel1.GetComponent<ReelScript>().StartSpin();
             //animation for r1
             yield return new WaitForSeconds(reelSpinTime);
-            reel1.text = r1.ToString();
+            reel1.GetComponent<ReelScript>().StopSpin(r1-1);
         }
         if (reel == 2)
         {
             r2 = Random.Range(1,symbolCount+1);
-            reel2.text = "Sp";
+            reel2.GetComponent<ReelScript>().StartSpin();
             //animation for r2
             yield return new WaitForSeconds(reelSpinTime);
-            reel2.text = r2.ToString();
+            reel2.GetComponent<ReelScript>().StopSpin(r2-1);
         }
         if (reel == 3)
         {
             r3 = Random.Range(1,symbolCount+1);
-            reel3.text = "Sp";
+            reel3.GetComponent<ReelScript>().StartSpin();
             //animation for r3
             yield return new WaitForSeconds(reelSpinTime);
-            reel3.text = r3.ToString();
+            reel3.GetComponent<ReelScript>().StopSpin(r3-1);
         }
         CheckResult();
         SetReels();
         isSpinning=false;
+    }
+    private void AlphaChange(Image image, float alpha)
+    {
+        Color color = image.color;
+        color.a = alpha;
+        image.color = color;
     }
 }
