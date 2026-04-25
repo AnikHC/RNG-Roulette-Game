@@ -34,9 +34,13 @@ public class SlotSpinScript : MonoBehaviour
     private int betAmount;
     private int betAmountPosition=0;
     private int[] reelItemNum = new int[3];
+
+    // To store the old reel values when using the reroll item, 
+    // so that only the selected reel is changed when the re roll item is used.
     private int r1Old;
     private int r2Old;
     private int r3Old;
+
     private int itemsUsedThisRound = 0;
     private bool isSpinning = false;
     private bool isDoubleMultiplier = false;
@@ -55,6 +59,8 @@ public class SlotSpinScript : MonoBehaviour
         reelItemNum[1] = Random.Range(1,symbolCount+1);
         reelItemNum[2] = Random.Range(1,symbolCount+1);
     }
+    // Overloaded method to set the reels to the old values when using the re roll item, 
+    // so that only the selected reel is changed.
     private void SetReels(int reelIndex)
     {
         if (reelIndex == 1)
@@ -111,6 +117,8 @@ public class SlotSpinScript : MonoBehaviour
 
         isSpinning = false;
     }
+    // Checks the result of the spin, and applies the appropriate win/loss and item effects based on the result.
+    // excluding match of 2 reels, as that is handled in the ApplyLossForForMatchTwo method, to avoid code repetition.
     private void CheckResult()
     {
         Debug.Log($"{reelItemNum[0]},{reelItemNum[1]},{reelItemNum[2]}");
@@ -157,6 +165,8 @@ public class SlotSpinScript : MonoBehaviour
         }
         isDoubleMultiplier = false;
     }
+    // Used when there is a match of 2 symbols, to apply the loss for the match of 2, 
+    // and to check if the player has gone bankrupt.
     private void ApplyLossForForMatchTwo()
     {   if(!insuranceUsed){
             if(!isDoubleMultiplier){
@@ -177,6 +187,9 @@ public class SlotSpinScript : MonoBehaviour
         betAmount = betAmountChoices[betAmountPosition];
         betAmountText.text = betAmount.ToString();
     }
+    // Used to increase or decrease the bet amount, depending on the input. 
+    // Only works if the reels are not currently spinning. 
+    // Used bool to determine whether to increase or decrease the bet amount, to avoid code repetition.
     public void BetIncrease(bool yes)
     {
         if(!isSpinning){
@@ -198,6 +211,8 @@ public class SlotSpinScript : MonoBehaviour
             }
         }
     }
+    // Reel-1 to make the unity inspector more user friendly, 
+    // as the reels are numbered 1-3 in the inspector, but are indexed 0-2 in the code.
     private void ReceiveItem(int reel)
     {
         itemButtons[reel-1].GetComponent<Button>().interactable = true;
@@ -258,6 +273,8 @@ public class SlotSpinScript : MonoBehaviour
             itemButtons[4].GetComponent<Button>().interactable = false;
         }
     }
+    // Used to spin one reel when the re roll item is used, so that only the selected reel is changed, 
+    // and to avoid code repetition.
     IEnumerator OneReelSpin(int reel)
     {
         r1Old = reelItemNum[0];
@@ -296,6 +313,8 @@ public class SlotSpinScript : MonoBehaviour
         SetReels();
         isSpinning=false;
     }
+    // Used to change the alpha of an image, used for the peek item to make the peek predictions visible or invisible.
+    // Used because if sprite is null, the image will still be visible.
     private void AlphaChange(Image image, float alpha)
     {
         Color color = image.color;

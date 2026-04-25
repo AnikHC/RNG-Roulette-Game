@@ -11,6 +11,8 @@ public class ButtonScript : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     {
         buttonImage = GetComponent<Image>();
     }
+    //To make the button change color when hovered over, and change back when not hovered over. 
+    // Only changes color if the button is interactable.   
     public void OnPointerEnter(PointerEventData eventData){
         if(gameObject.GetComponent<Button>().interactable){
             Color color;
@@ -19,7 +21,6 @@ public class ButtonScript : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             }
         }
     }
-
     public void OnPointerExit(PointerEventData eventData){
        if(gameObject.GetComponent<Button>().interactable){
             Color color;
