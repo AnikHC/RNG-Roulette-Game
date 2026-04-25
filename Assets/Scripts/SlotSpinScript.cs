@@ -1,11 +1,6 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Threading;
-using Unity.Collections;
-using Unity.VisualScripting;
-using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SlotSpinScript : MonoBehaviour
@@ -21,6 +16,7 @@ public class SlotSpinScript : MonoBehaviour
     [SerializeField] private int symbolCount = 5;
     [SerializeField] private GameObject lockCanvas;
     [SerializeField] private GameObject reRollCanvas;
+    [SerializeField] private GameObject endGameCanvas;
     [SerializeField] private GameObject[] itemButtons;
 
     [Header("Spin Settings")]
@@ -29,6 +25,7 @@ public class SlotSpinScript : MonoBehaviour
     [Header("Bet Settings")]
     [SerializeField] private int[] betAmountChoices;
     [SerializeField] private int winMultiplier = 10;
+    [SerializeField] private int currentMoney = 300;
 
     [Header("Item Settings")]
     [SerializeField] private int itemsPermittedPerRound = 2;
@@ -36,10 +33,10 @@ public class SlotSpinScript : MonoBehaviour
 
     private int betAmount;
     private int betAmountPosition=0;
-    private int currentMoney = 300;
-    private int r1;
-    private int r2;
-    private int r3;
+    private int[] reelItemNum = new int[3];
+    private int r1Old;
+    private int r2Old;
+    private int r3Old;
     private int itemsUsedThisRound = 0;
     private bool isSpinning = false;
     private bool isDoubleMultiplier = false;
@@ -54,9 +51,27 @@ public class SlotSpinScript : MonoBehaviour
     }
     private void SetReels()
     {
-        r1 = Random.Range(1,symbolCount+1);
-        r2 = Random.Range(1,symbolCount+1);
-        r3 = Random.Range(1,symbolCount+1);
+        reelItemNum[0] = Random.Range(1,symbolCount+1);
+        reelItemNum[1] = Random.Range(1,symbolCount+1);
+        reelItemNum[2] = Random.Range(1,symbolCount+1);
+    }
+    private void SetReels(int reelIndex)
+    {
+        if (reelIndex == 1)
+        {
+            reelItemNum[1] = r2Old;
+            reelItemNum[2] = r3Old;
+        }
+        if(reelIndex == 2)
+        {
+            reelItemNum[0] = r1Old;
+            reelItemNum[2] = r3Old;
+        }
+        if(reelIndex == 3)
+        {
+            reelItemNum[0] = r1Old;
+            reelItemNum[1] = r2Old;
+        }
     }
     public void SpinButton()
     {
@@ -65,25 +80,26 @@ public class SlotSpinScript : MonoBehaviour
     
     IEnumerator ReelSpin()
     {
+        r1Old = reelItemNum[0];
+        r2Old = reelItemNum[1];
+        r3Old = reelItemNum[2];
+
         itemsUsedThisRound = 0;
         isSpinning = true;
-        //animation for reel1
-        //animation for reel2
-        //animation for reel3
+
         reel1.GetComponent<ReelScript>().StartSpin();
         reel2.GetComponent<ReelScript>().StartSpin();
         reel3.GetComponent<ReelScript>().StartSpin();
-        yield return new WaitForSeconds (reelSpinTime);
-        //stop animation for reel1
-        reel1.GetComponent<ReelScript>().StopSpin(r1-1);
-        yield return new WaitForSeconds (reelSpinTime);
-        //stop animation for reel2
-        reel2.GetComponent<ReelScript>().StopSpin(r2-1);
-        yield return new WaitForSeconds (reelSpinTime);
-        //stop animation for reel3
-        reel3.GetComponent<ReelScript>().StopSpin(r3-1);
 
-        Debug.Log($"{r1},{r2},{r3}");
+        yield return new WaitForSeconds (reelSpinTime);
+        reel1.GetComponent<ReelScript>().StopSpin(reelItemNum[0]-1);
+
+        yield return new WaitForSeconds (reelSpinTime);
+        reel2.GetComponent<ReelScript>().StopSpin(reelItemNum[1]-1);
+
+        yield return new WaitForSeconds (reelSpinTime);
+        reel3.GetComponent<ReelScript>().StopSpin(reelItemNum[2]-1);
+
         CheckResult();
         SetReels();
 
@@ -97,7 +113,8 @@ public class SlotSpinScript : MonoBehaviour
     }
     private void CheckResult()
     {
-         if (r1 == r2 && r2 == r3)
+        Debug.Log($"{reelItemNum[0]},{reelItemNum[1]},{reelItemNum[2]}");
+         if (reelItemNum[0] == reelItemNum[1] && reelItemNum[1] == reelItemNum[2])
         {
             if(!isDoubleMultiplier){
                 currentMoney += winMultiplier*betAmount;
@@ -106,20 +123,23 @@ public class SlotSpinScript : MonoBehaviour
                 currentMoney += winMultiplier*betAmount*2;
             }
             currentMoneyText.text = currentMoney.ToString();
+            if(currentMoney >= 2000){
+                EndGame(1);
+            }
         }
-        else if(r1 == r2)
+        else if(reelItemNum[0] == reelItemNum[1])
         {
-            ReceiveItem(r1);
+            ReceiveItem(reelItemNum[0]);
             ApplyLossForForMatchTwo();
         }
-        else if(r2 == r3)
+        else if(reelItemNum[1] == reelItemNum[2])
         {
-            ReceiveItem(r2);
+            ReceiveItem(reelItemNum[1]);
             ApplyLossForForMatchTwo();
         }
-        else if(r1 == r3)
+        else if(reelItemNum[0] == reelItemNum[2])
         {
-            ReceiveItem(r1);
+            ReceiveItem(reelItemNum[0]);
             ApplyLossForForMatchTwo();
         }
         else
@@ -148,6 +168,9 @@ public class SlotSpinScript : MonoBehaviour
             currentMoneyText.text = currentMoney.ToString();
         }
         insuranceUsed = false;
+        if (currentMoney <= 0){
+            EndGame(0);
+        }
     }
     private void BetChange()
     {
@@ -181,23 +204,25 @@ public class SlotSpinScript : MonoBehaviour
     {   
         if(!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
             itemsUsedThisRound++;
-            peekPrediction1.sprite = items[r1-1];
+            peekPrediction1.sprite = items[reelItemNum[0]-1];
             AlphaChange(peekPrediction1, 1f);
-            peekPrediction2.sprite = items[r2-1];
+            peekPrediction2.sprite = items[reelItemNum[1]-1];
             AlphaChange(peekPrediction2, 1f);
             itemButtons[0].GetComponent<Button>().interactable = false;
         }
     }
     public void UseLock()
     {   if(!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
-            itemsUsedThisRound++;
             lockCanvas.SetActive(true);
-            itemButtons[1].GetComponent<Button>().interactable = false;
         }
     }
     public void LockReelSet(int reel3)
     {
-        r3 = reel3;
+        if(reel3!=6){
+            reelItemNum[2] = reel3;
+            itemsUsedThisRound++;
+            itemButtons[1].GetComponent<Button>().interactable = false;
+        }
         lockCanvas.SetActive(false);
     }
     public void UseDouble()
@@ -210,15 +235,18 @@ public class SlotSpinScript : MonoBehaviour
     public void UseReroll()
     {
         if(!isSpinning&&itemsUsedThisRound<itemsPermittedPerRound){
-            itemsUsedThisRound++;
             reRollCanvas.SetActive(true);
-            itemButtons[3].GetComponent<Button>().interactable = false;
         }
     }
     public void RerollReelSet(int reel)
     {
+        if(reel!=4){
+            itemsUsedThisRound++;
+            itemButtons[3].GetComponent<Button>().interactable = false;
+            SetReels(reel);
             StartCoroutine(OneReelSpin(reel));
-            reRollCanvas.SetActive(false);
+        }
+        reRollCanvas.SetActive(false);
     }
     public void UseInsurance()
     {
@@ -230,30 +258,37 @@ public class SlotSpinScript : MonoBehaviour
     }
     IEnumerator OneReelSpin(int reel)
     {
+        r1Old = reelItemNum[0];
+        r2Old = reelItemNum[1];
+        r3Old = reelItemNum[2];
+
         isSpinning=true;
         if (reel == 1)
         {
-            r1 = Random.Range(1,symbolCount+1);
+            reelItemNum[0] = Random.Range(1,symbolCount+1);
+            
             reel1.GetComponent<ReelScript>().StartSpin();
-            //animation for r1
+
             yield return new WaitForSeconds(reelSpinTime);
-            reel1.GetComponent<ReelScript>().StopSpin(r1-1);
+            reel1.GetComponent<ReelScript>().StopSpin(reelItemNum[0]-1);
         }
         if (reel == 2)
         {
-            r2 = Random.Range(1,symbolCount+1);
+            reelItemNum[1] = Random.Range(1,symbolCount+1);
+
             reel2.GetComponent<ReelScript>().StartSpin();
-            //animation for r2
+
             yield return new WaitForSeconds(reelSpinTime);
-            reel2.GetComponent<ReelScript>().StopSpin(r2-1);
+            reel2.GetComponent<ReelScript>().StopSpin(reelItemNum[1]-1);
         }
         if (reel == 3)
         {
-            r3 = Random.Range(1,symbolCount+1);
+            reelItemNum[2] = Random.Range(1,symbolCount+1);
+
             reel3.GetComponent<ReelScript>().StartSpin();
-            //animation for r3
+
             yield return new WaitForSeconds(reelSpinTime);
-            reel3.GetComponent<ReelScript>().StopSpin(r3-1);
+            reel3.GetComponent<ReelScript>().StopSpin(reelItemNum[2]-1);
         }
         CheckResult();
         SetReels();
@@ -264,5 +299,18 @@ public class SlotSpinScript : MonoBehaviour
         Color color = image.color;
         color.a = alpha;
         image.color = color;
+    }
+    private void EndGame(int condition)
+    {
+        endGameCanvas.SetActive(true);
+        endGameCanvas.transform.GetChild(condition).gameObject.SetActive(true);
+    }
+    public void QuitApplication()
+    {
+        Application.Quit();
+    }
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(0);
     }
 }
