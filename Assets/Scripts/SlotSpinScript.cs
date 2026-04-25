@@ -305,10 +305,6 @@ public class SlotSpinScript : MonoBehaviour
         endGameCanvas.SetActive(true);
         endGameCanvas.transform.GetChild(condition).gameObject.SetActive(true);
     }
-    public void QuitApplication()
-    {
-        Application.Quit();
-    }
     public void RestartGame()
     {
         SceneManager.LoadScene(0);
