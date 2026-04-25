@@ -179,20 +179,22 @@ public class SlotSpinScript : MonoBehaviour
     }
     public void BetIncrease(bool yes)
     {
-        if (yes)
-        {
-            if (betAmountPosition < betAmountChoices.Length-1)
+        if(!isSpinning){
+            if (yes)
             {
-                betAmountPosition++;
-                BetChange();
+                if (betAmountPosition < betAmountChoices.Length-1)
+                {
+                    betAmountPosition++;
+                    BetChange();
+                }
             }
-        }
-        if (!yes)
-        {
-            if (betAmountPosition != 0)
+            if (!yes)
             {
-                betAmountPosition--;
-                BetChange();
+                if (betAmountPosition != 0)
+                {
+                    betAmountPosition--;
+                    BetChange();
+                }
             }
         }
     }
